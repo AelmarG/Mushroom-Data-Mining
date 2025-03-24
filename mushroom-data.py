@@ -61,10 +61,6 @@ X_train, X_test, Y_train, Y_test = train_test_split(
 #create the decision tree
 dec_tree = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
 
-#create arrays to look at accuracies
-train_accuracies = []
-test_accuracies = []
-
 #train the model
 dec_tree.fit(X_train, Y_train)
 
@@ -75,10 +71,6 @@ Y_test_pred = dec_tree.predict(X_test)
 #compute accuracies
 train_acc = accuracy_score(Y_train, Y_train_pred)
 test_acc = accuracy_score(Y_test, Y_test_pred)
-
-#store results
-train_accuracies.append(train_acc)
-test_accuracies.append(test_acc)
 
 print(f"Train Acc = {train_acc:.4f}, Test Acc = {test_acc:.4f}")
 
