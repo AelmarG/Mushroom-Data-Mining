@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import tree
+from sklearn.tree import plot_tree
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
@@ -30,13 +31,8 @@ mushrooms = mushrooms.dropna()
 #create a copy to preserve original if needed
 mushrooms_encoded = mushrooms.copy()
 
-#initialize LabelEncoder
-le = LabelEncoder()
-
-#apply LabelEncoder to all columns *except* 'classification'
-for column in mushrooms_encoded.columns:
-    if column != 'classification':
-        mushrooms_encoded[column] = le.fit_transform(mushrooms_encoded[column])
+features_to_encode = mushrooms.columns.drop('classification')
+mushrooms_encoded = pd.get_dummies(mushrooms, columns=features_to_encode, drop_first=True)
 
 #show the first few rows
 print(mushrooms_encoded.head())
@@ -50,7 +46,7 @@ Y = mushrooms_encoded['classification']
 #split X and Y into testing and training sets
 X_train, X_test, Y_train, Y_test = train_test_split(
     X, Y, 
-    test_size=0.4,        #testing is 40% of the data
+    test_size=0.01,        #testing is 40% of the data
     stratify=Y,           #preserve class distribution
     random_state=42       #ensures same split every run
 )
@@ -73,6 +69,16 @@ train_acc = accuracy_score(Y_train, Y_train_pred)
 test_acc = accuracy_score(Y_test, Y_test_pred)
 
 print(f"Train Acc = {train_acc:.4f}, Test Acc = {test_acc:.4f}")
+
+plt.figure(figsize=(20, 10))
+plot_tree(dec_tree, 
+          feature_names=X.columns, 
+          class_names=['edible', 'poisonous'], 
+          filled=True, 
+          rounded=True, 
+          fontsize=10)
+plt.title("Decision Tree for Mushroom Classification")
+plt.show()
 
 ###CLASSIFICATION METHOD 2: NAIVE BAYES
 
