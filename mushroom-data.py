@@ -40,39 +40,37 @@ print(mushrooms_encoded.head())
 ###CLASSIFICATION METHOD 1: DECISION TREES
 
 #split the attributes of the data frame into the class value and all other attributes
-X = mushrooms_encoded.drop(['classification'], axis=1)
-Y = mushrooms_encoded['classification']
+X_norm = mushrooms_encoded.drop(['classification'], axis=1)
+Y_norm = mushrooms_encoded['classification']
 
 #split X and Y into testing and training sets
-X_train, X_test, Y_train, Y_test = train_test_split(
-    X, Y, 
-    test_size=0.01,        #testing is 40% of the data
-    stratify=Y,           #preserve class distribution
+X_train_norm, X_test_norm, Y_train_norm, Y_test_norm = train_test_split(
+    X_norm, Y_norm, 
+    test_size=0.4,        #testing is 40% of the data
+    stratify=Y_norm,           #preserve class distribution
     random_state=42       #ensures same split every run
 )
 
-
-######might have to check the decision tree stuff cuz the accuracies are scary close
-
 #create the decision tree
-dec_tree = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
+norm_dec_tree = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
 
 #train the model
-dec_tree.fit(X_train, Y_train)
+norm_dec_tree.fit(X_train_norm, Y_train_norm)
 
 #predict on training and test sets
-Y_train_pred = dec_tree.predict(X_train)
-Y_test_pred = dec_tree.predict(X_test)
+Y_train_pred_norm = norm_dec_tree.predict(X_train_norm)
+Y_test_pred_norm = norm_dec_tree.predict(X_test_norm)
 
 #compute accuracies
-train_acc = accuracy_score(Y_train, Y_train_pred)
-test_acc = accuracy_score(Y_test, Y_test_pred)
+norm_tree_train_acc = accuracy_score(Y_train_norm, Y_train_pred_norm)
+norm_tree_test_acc = accuracy_score(Y_test_norm, Y_test_pred_norm)
 
-print(f"Train Acc = {train_acc:.4f}, Test Acc = {test_acc:.4f}")
+print(f"Tree Train Acc W/O Feature Selection = {norm_tree_train_acc:.4f}") 
+print(f"Tree Test Acc W/O Feature Selection = {norm_tree_test_acc:.4f}", '\n')
 
 plt.figure(figsize=(20, 10))
-plot_tree(dec_tree, 
-          feature_names=X.columns, 
+plot_tree(norm_dec_tree, 
+          feature_names=X_norm.columns, 
           class_names=['edible', 'poisonous'], 
           filled=True, 
           rounded=True, 
