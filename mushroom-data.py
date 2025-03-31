@@ -80,6 +80,50 @@ plot_tree(dec_tree,
 plt.title("Decision Tree for Mushroom Classification")
 plt.show()
 
+###CLASSIFICATION METHOD 1.5: DECISION TREES WITH FEATURE SELECTION
+
+###########this also might need to be checked later I got the exact same accuracies :|
+
+#create the RFE for feature selection
+rfe = RFE(norm_dec_tree, n_features_to_select=5)
+selected = rfe.fit_transform(X_train_norm, Y_train_norm)
+print("Selected features:", X_train_norm.columns[rfe.get_support()])
+
+#create a dataframe using only the selected features
+mushrooms_fs = pd.DataFrame()
+
+for i in X_train_norm.columns[rfe.get_support()]:
+    mushrooms_fs[i] = mushrooms_encoded[i]
+
+#create a new decision tree for the selected features
+dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
+
+#split the attributes again
+X_fs = mushrooms_fs
+Y_fs = Y_norm
+
+#split the data into test and train sets
+X_train_fs, X_test_fs, Y_train_fs, Y_test_fs = train_test_split(
+    X_fs, Y_fs,
+    test_size = 0.4,
+    stratify = Y_fs,
+    random_state = 42
+)
+
+#fit the decision tree
+dec_tree_fs.fit(X_train_fs, Y_train_fs)
+
+#predict on training and test sets
+Y_train_pred_fs = dec_tree_fs.predict(X_train_fs)
+Y_test_pred_fs = dec_tree_fs.predict(X_test_fs)
+
+#compute accuracies
+fs_train_acc = accuracy_score(Y_train_fs, Y_train_pred_fs)
+fs_test_acc = accuracy_score(Y_test_fs, Y_test_pred_fs)
+
+print(f"Train Acc With Feature Selection = {fs_train_acc:.4f}") 
+print(f"Test Acc With Feature Selection = {fs_test_acc:.4f}")
+
 ###CLASSIFICATION METHOD 2: NAIVE BAYES
 
 
