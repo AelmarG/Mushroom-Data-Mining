@@ -14,15 +14,11 @@ from sklearn.neural_network import MLPClassifier
 
 
 #import the data and label the columns as they are unlabelled
-mushrooms = pd.read_csv('./agaricus-lepiota.data',
-                        names=['classification','cap-shape','cap-surface','cap-color',
-                               'bruises?','odor','gill-attachment',
-                               'gill-spacing','gill-size','gill-color',
-                               'stalk-shape','stalk-root','stalk-surface-above-ring',
-                               'stalk-surface-below-ring','stalk-color-above-ring',
-                               'stalk-color-below-ring','veil-type',
-                               'veil-color','ring-number','ring-type',
-                               'spore-print-color','population','habitat'])
+mushrooms = pd.read_csv('./adult.data',
+                        names=['age','workclass','fnlwgt', 'education',
+                               'education-num', 'marital-status', 'occupation',
+                               'relationship', 'race', 'sex', 'capital-gain',
+                               'capital-loss', 'hours-per-week', 'native-country','annual-income'])
 
 ###PRE-PROCESSING
 
@@ -35,7 +31,9 @@ mushrooms = mushrooms.dropna()
 #create a copy to preserve original if needed
 mushrooms_encoded = mushrooms.copy()
 
-features_to_encode = mushrooms.columns.drop('classification')
+features_to_encode = ['workclass','education','marital-status',
+                        'occupation','relationship','race','sex',
+                        'native-country']
  
 mushrooms_encoded = pd.get_dummies(mushrooms, columns=features_to_encode, drop_first=True)
 
@@ -45,13 +43,13 @@ print(mushrooms_encoded.head())
 ###CLASSIFICATION METHOD 1: DECISION TREES
 
 #split the attributes of the data frame into the class value and all other attributes
-X_norm = mushrooms_encoded.drop(['classification'], axis=1)
-Y_norm = mushrooms_encoded['classification']
+X_norm = mushrooms_encoded.drop(['annual-income'], axis=1)
+Y_norm = mushrooms_encoded['annual-income']
 
 #split X and Y into testing and training sets
 X_train_norm, X_test_norm, Y_train_norm, Y_test_norm = train_test_split(
     X_norm, Y_norm, 
-    test_size=0.2,        #testing is 40% of the data
+    test_size=0.4,        #testing is 40% of the data
     stratify=Y_norm,           #preserve class distribution
     random_state=42       #ensures same split every run
 )
@@ -72,7 +70,7 @@ norm_tree_test_acc = accuracy_score(Y_test_norm, Y_test_pred_norm)
 
 print(f"Tree Train Acc W/O Feature Selection = {norm_tree_train_acc:.4f}") 
 print(f"Tree Test Acc W/O Feature Selection = {norm_tree_test_acc:.4f}", '\n')
-
+'''
 plt.figure(figsize=(20, 10))
 plot_tree(norm_dec_tree, 
           feature_names=X_norm.columns, 
@@ -81,12 +79,12 @@ plot_tree(norm_dec_tree,
           rounded=True, 
           fontsize=10)
 plt.title("Decision Tree for Mushroom Classification Without Feature Selection")
-plt.show()
+plt.show()'''
 
 ###CLASSIFICATION METHOD 1.5: DECISION TREES WITH FEATURE SELECTION
 
 #create the RFE for feature selection
-rfe = RFE(norm_dec_tree, n_features_to_select=30)
+rfe = RFE(norm_dec_tree, n_features_to_select=10)
 selected = rfe.fit_transform(X_train_norm, Y_train_norm)
 print("Selected features:", X_train_norm.columns[rfe.get_support()], '\n')
 
@@ -125,6 +123,7 @@ fs_tree_test_acc = accuracy_score(Y_test_fs, Y_test_pred_fs)
 print(f"Tree Train Acc With Feature Selection = {fs_tree_train_acc:.4f}") 
 print(f"Tree Test Acc With Feature Selection = {fs_tree_test_acc:.4f}", '\n')
 
+'''
 plt.figure(figsize=(20, 10))
 plot_tree(dec_tree_fs, 
           feature_names=X_fs.columns, 
@@ -133,7 +132,7 @@ plot_tree(dec_tree_fs,
           rounded=True, 
           fontsize=10)
 plt.title("Decision Tree for Mushroom Classification With Feature Selection")
-plt.show()
+plt.show()'''
 
 ###CLASSIFICATION METHOD 2: NAIVE BAYES
 
