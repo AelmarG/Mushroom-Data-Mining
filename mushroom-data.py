@@ -5,10 +5,12 @@ import matplotlib.pyplot as plt
 from sklearn import tree
 from sklearn.tree import plot_tree
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import f_classif
+from sklearn.feature_selection import f_classif, mutual_info_classif, chi2
+from imblearn.over_sampling import SMOTE
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -56,8 +58,12 @@ X_train_norm, X_test_norm, Y_train_norm, Y_test_norm = train_test_split(
     random_state=42       #ensures same split every run
 )
 
+#Create SMOTE versions of the training data to counteract the oversampling in our data
+smote = SMOTE(random_state=42)
+X_train_norm_sm, Y_train_norm_sm = smote.fit_resample(X_train_norm, Y_train_norm)
+
 #create the decision tree
-norm_dec_tree = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
+norm_dec_tree = tree.DecisionTreeClassifier(max_depth=4, random_state=42, class_weight='balanced')
 
 #train the model
 norm_dec_tree.fit(X_train_norm, Y_train_norm)
@@ -101,7 +107,7 @@ for i in X_norm.columns[selector.get_support()]:
     adults_fs[i] = adults_encoded[i]
 
 #create a new decision tree for the selected features
-dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
+dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42, class_weight='balanced')
 
 #split the attributes again
 X_fs = adults_fs
@@ -114,6 +120,8 @@ X_train_fs, X_test_fs, Y_train_fs, Y_test_fs = train_test_split(
     stratify = Y_fs,
     random_state = 42
 )
+X_train_fs_sm, Y_train_fs_sm = smote.fit_resample(X_train_fs, Y_train_fs)
+
 
 #fit the decision tree
 dec_tree_fs.fit(X_train_fs, Y_train_fs)
@@ -146,7 +154,7 @@ plt.show()'''
 gb_norm = GaussianNB()
 
 #train the model using the normal X and Y attributes
-gb_norm.fit(X_train_norm, Y_train_norm)
+gb_norm.fit(X_train_norm_sm, Y_train_norm_sm)
 
 #predict on test and training sets
 Y_NB_train_pred_norm = gb_norm.predict(X_train_norm)
@@ -164,7 +172,7 @@ print(f"NB Test Acc W/O Feature Selection = {norm_gb_test_acc:.4f}", '\n')
 gb_fs = GaussianNB()
 
 #train the model using the feature selected X and Y attributes
-gb_fs.fit(X_train_fs, Y_train_fs)
+gb_fs.fit(X_train_fs_sm, Y_train_fs_sm)
 
 #predict on test and training sets
 Y_NB_train_pred_fs = gb_fs.predict(X_train_fs)
@@ -179,7 +187,7 @@ print(f"NB Test Acc With Feature Selection = {fs_gb_test_acc:.4f}", '\n')
 ###CLASSIFICATOIN METHOD 3: SUPPORT VECTOR MACHINES
 
 #create the SVM for the normal attributes
-svm_norm = SVC()
+svm_norm = SVC(class_weight='balanced')
 
 #train the SVM
 svm_norm.fit(X_train_norm, Y_train_norm)
@@ -197,7 +205,7 @@ print(f"SVM Test Acc W/O Feature Selection = {norm_svm_test_acc:.4f}", '\n')
 ###CLASSIFICATOIN METHOD 3.5: SUPPORT VECTOR MACHINES WITH FEATURE SELECTION
 
 #create the SVM for the feature selected attributes
-svm_fs = SVC()
+svm_fs = SVC(class_weight='balanced')
 
 #train the SVM
 svm_fs.fit(X_train_fs, Y_train_fs)
@@ -219,7 +227,7 @@ print(f"SVM Test Acc With Feature Selection = {fs_svm_test_acc:.4f}", '\n')
 knn_norm = KNeighborsClassifier()
 
 #train the KNN
-knn_norm.fit(X_train_norm, Y_train_norm)
+knn_norm.fit(X_train_norm_sm, Y_train_norm_sm)
 
 #predict on the test and training sets
 Y_KNN_train_pred_norm = knn_norm.predict(X_train_norm)
@@ -238,7 +246,7 @@ print(f"KNN Test Acc W/O Feature Selection = {norm_knn_test_acc:.4f}", '\n')
 knn_fs = KNeighborsClassifier()
 
 #train the KNN
-knn_fs.fit(X_train_fs, Y_train_fs)
+knn_fs.fit(X_train_fs_sm, Y_train_fs_sm)
 
 #predict on the test and training sets
 Y_KNN_train_pred_fs = knn_fs.predict(X_train_fs)
@@ -257,7 +265,7 @@ print(f"KNN Test Acc With Feature Selection = {fs_knn_test_acc:.4f}", '\n')
 mlp_norm = MLPClassifier()
 
 #train the MLP on the normal attributes
-mlp_norm.fit(X_train_norm, Y_train_norm)
+mlp_norm.fit(X_train_norm_sm, Y_train_norm_sm)
 
 #predict on the test and training sets
 Y_MLP_train_pred_norm = mlp_norm.predict(X_train_norm)
@@ -276,7 +284,7 @@ print(f"MLP Test Acc W/O Feature Selection = {norm_mlp_test_acc:.4f}", '\n')
 mlp_fs = MLPClassifier()
 
 #train the MLP on the feature selected attributes
-mlp_fs.fit(X_train_fs, Y_train_fs)
+mlp_fs.fit(X_train_fs_sm, Y_train_fs_sm)
 
 #predict on the test and training sets
 Y_MLP_train_pred_fs = mlp_fs.predict(X_train_fs)
@@ -342,7 +350,7 @@ plt.xlabel('Model')
 plt.ylabel('Accuracy')
 plt.title('Model Accuracy Comparison With and Without Feature Selection')
 plt.xticks(x + width / 2, models)
-plt.ylim(0.75, 0.9)
+plt.ylim(0.60, 0.9)
 plt.legend()
 plt.grid(axis='y')
 
