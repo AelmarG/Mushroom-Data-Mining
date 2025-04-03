@@ -4,9 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import tree
 from sklearn.tree import plot_tree
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-from sklearn.feature_selection import RFE
+from sklearn.metrics import accuracy_score, f1_score
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import f_classif
 from sklearn.naive_bayes import GaussianNB
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
@@ -14,7 +16,7 @@ from sklearn.neural_network import MLPClassifier
 
 
 #import the data and label the columns as they are unlabelled
-mushrooms = pd.read_csv('./adult.data',
+adults = pd.read_csv('./adult.data',
                         names=['age','workclass','fnlwgt', 'education',
                                'education-num', 'marital-status', 'occupation',
                                'relationship', 'race', 'sex', 'capital-gain',
@@ -23,28 +25,28 @@ mushrooms = pd.read_csv('./adult.data',
 ###PRE-PROCESSING
 
 #turn any '?' into a NaN
-mushrooms = mushrooms.replace(to_replace='?', value=np.nan)
+adults = adults.replace(to_replace='?', value=np.nan)
 
 #drop every row that is missing data (rows with NaN)
-mushrooms = mushrooms.dropna()
+adults = adults.dropna()
 
 #create a copy to preserve original if needed
-mushrooms_encoded = mushrooms.copy()
+adults_encoded = adults.copy()
 
 features_to_encode = ['workclass','education','marital-status',
                         'occupation','relationship','race','sex',
                         'native-country']
  
-mushrooms_encoded = pd.get_dummies(mushrooms, columns=features_to_encode, drop_first=True)
+adults_encoded = pd.get_dummies(adults, columns=features_to_encode, drop_first=True)
 
 #show the first few rows
-print(mushrooms_encoded.head())
+print(adults_encoded.head())
 
 ###CLASSIFICATION METHOD 1: DECISION TREES
 
 #split the attributes of the data frame into the class value and all other attributes
-X_norm = mushrooms_encoded.drop(['annual-income'], axis=1)
-Y_norm = mushrooms_encoded['annual-income']
+X_norm = adults_encoded.drop(['annual-income'], axis=1)
+Y_norm = adults_encoded['annual-income']
 
 #split X and Y into testing and training sets
 X_train_norm, X_test_norm, Y_train_norm, Y_test_norm = train_test_split(
@@ -70,35 +72,39 @@ norm_tree_test_acc = accuracy_score(Y_test_norm, Y_test_pred_norm)
 
 print(f"Tree Train Acc W/O Feature Selection = {norm_tree_train_acc:.4f}") 
 print(f"Tree Test Acc W/O Feature Selection = {norm_tree_test_acc:.4f}", '\n')
-'''
+
 plt.figure(figsize=(20, 10))
 plot_tree(norm_dec_tree, 
           feature_names=X_norm.columns, 
-          class_names=['edible', 'poisonous'], 
+          class_names=['<50k', ' >50k'], 
           filled=True, 
           rounded=True, 
           fontsize=10)
-plt.title("Decision Tree for Mushroom Classification Without Feature Selection")
-plt.show()'''
+plt.title("Decision Tree for Annual Salary Classification Without Feature Selection")
+plt.show()
 
 ###CLASSIFICATION METHOD 1.5: DECISION TREES WITH FEATURE SELECTION
 
-#create the RFE for feature selection
-rfe = RFE(norm_dec_tree, n_features_to_select=10)
-selected = rfe.fit_transform(X_train_norm, Y_train_norm)
-print("Selected features:", X_train_norm.columns[rfe.get_support()], '\n')
+# Fit SelectKBest to the original features
+selector = SelectKBest(score_func=f_classif, k=10)
+X_new = selector.fit_transform(X_norm, Y_norm)
+
+# Get the names of the selected features
+selected_features = X_norm.columns[selector.get_support()]
+
+print("Selected features:", selected_features)
 
 #create a dataframe using only the selected features
-mushrooms_fs = pd.DataFrame()
+adults_fs = pd.DataFrame()
 
-for i in X_train_norm.columns[rfe.get_support()]:
-    mushrooms_fs[i] = mushrooms_encoded[i]
+for i in X_norm.columns[selector.get_support()]:
+    adults_fs[i] = adults_encoded[i]
 
 #create a new decision tree for the selected features
 dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42)
 
 #split the attributes again
-X_fs = mushrooms_fs
+X_fs = adults_fs
 Y_fs = Y_norm
 
 #split the data into test and train sets
@@ -282,3 +288,63 @@ fs_mlp_test_acc = accuracy_score(Y_test_fs, Y_MLP_test_pred_fs)
 
 print(f"MLP Train Acc With Feature Selection = {fs_mlp_train_acc:.4f}")
 print(f"MLP Test Acc With Feature Selection = {fs_mlp_test_acc:.4f}", '\n')
+
+###PLOTTING ALL ACCURACIES
+
+#model names
+models = ["Decision Tree", "Naive Bayes", "SVM", "KNN", "MLP"]
+
+#accuracies without feature selection
+train_acc_no_fs = [
+    norm_tree_train_acc,
+    norm_gb_train_acc,
+    norm_svm_train_acc,
+    norm_knn_train_acc,
+    norm_mlp_train_acc
+]
+
+test_acc_no_fs = [
+    norm_tree_test_acc,
+    norm_gb_test_acc,
+    norm_svm_test_acc,
+    norm_knn_test_acc,
+    norm_mlp_test_acc
+]
+
+#accuracies with feature selection
+train_acc_fs = [
+    fs_tree_train_acc,
+    fs_gb_train_acc,
+    fs_svm_train_acc,
+    fs_knn_train_acc,
+    fs_mlp_train_acc
+]
+
+test_acc_fs = [
+    fs_tree_test_acc,
+    fs_gb_test_acc,
+    fs_svm_test_acc,
+    fs_knn_test_acc,
+    fs_mlp_test_acc
+]
+
+#plotting
+x = np.arange(len(models))
+width = 0.2
+
+plt.figure(figsize=(12, 6))
+plt.bar(x - width, train_acc_no_fs, width, label='Train Acc (No FS)')
+plt.bar(x, test_acc_no_fs, width, label='Test Acc (No FS)')
+plt.bar(x + width, train_acc_fs, width, label='Train Acc (FS)')
+plt.bar(x + 2*width, test_acc_fs, width, label='Test Acc (FS)')
+
+plt.xlabel('Model')
+plt.ylabel('Accuracy')
+plt.title('Model Accuracy Comparison With and Without Feature Selection')
+plt.xticks(x + width / 2, models)
+plt.ylim(0.75, 0.9)
+plt.legend()
+plt.grid(axis='y')
+
+plt.tight_layout()
+plt.show()
