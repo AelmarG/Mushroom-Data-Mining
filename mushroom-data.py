@@ -47,14 +47,20 @@ print(adults_encoded.head())
 ###CLASSIFICATION METHOD 1: DECISION TREES
 
 #split the attributes of the data frame into the class value and all other attributes
-X_norm = adults_encoded.drop(['annual-income'], axis=1)
-Y_norm = adults_encoded['annual-income']
+X_full = adults_encoded.drop(['annual-income'], axis=1)
+Y_full = adults_encoded['annual-income']
+
+#use train_test_split with train_size=10000 to obtain a representative sample.
+X_sample, _, Y_sample, _ = train_test_split(X_full, Y_full,
+                                            train_size=10000,
+                                            stratify=Y_full,
+                                            random_state=42)
 
 #split X and Y into testing and training sets
 X_train_norm, X_test_norm, Y_train_norm, Y_test_norm = train_test_split(
-    X_norm, Y_norm, 
+    X_sample, Y_sample, 
     test_size=0.4,        #testing is 40% of the data
-    stratify=Y_norm,           #preserve class distribution
+    stratify=Y_sample,           #preserve class distribution
     random_state=42       #ensures same split every run
 )
 
@@ -81,7 +87,7 @@ print(f"Tree Test Acc W/O Feature Selection = {norm_tree_test_acc:.4f}", '\n')
 
 plt.figure(figsize=(20, 10))
 plot_tree(norm_dec_tree, 
-          feature_names=X_norm.columns, 
+          feature_names=X_sample.columns, 
           class_names=['<50k', ' >50k'], 
           filled=True, 
           rounded=True, 
@@ -91,27 +97,27 @@ plt.show()
 
 ###CLASSIFICATION METHOD 1.5: DECISION TREES WITH FEATURE SELECTION
 
-# Fit SelectKBest to the original features
+#fit SelectKBest to the original features
 selector = SelectKBest(score_func=f_classif, k=10)
-X_new = selector.fit_transform(X_norm, Y_norm)
+X_new = selector.fit_transform(X_sample, Y_sample)
 
-# Get the names of the selected features
-selected_features = X_norm.columns[selector.get_support()]
+#get the names of the selected features
+selected_features = X_sample.columns[selector.get_support()]
 
 print("Selected features:", selected_features)
 
 #create a dataframe using only the selected features
 adults_fs = pd.DataFrame()
 
-for i in X_norm.columns[selector.get_support()]:
+for i in X_sample.columns[selector.get_support()]:
     adults_fs[i] = adults_encoded[i]
 
 #create a new decision tree for the selected features
 dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42, class_weight='balanced')
 
 #split the attributes again
-X_fs = adults_fs
-Y_fs = Y_norm
+X_fs = X_sample
+Y_fs = Y_sample
 
 #split the data into test and train sets
 X_train_fs, X_test_fs, Y_train_fs, Y_test_fs = train_test_split(
