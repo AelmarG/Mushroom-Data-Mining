@@ -97,31 +97,42 @@ plt.show()
 
 ###CLASSIFICATION METHOD 1.5: DECISION TREES WITH FEATURE SELECTION
 
-#fit SelectKBest to the original features
+# Remove features with no variance
+constant_filter = VarianceThreshold()
+X_sample_var = constant_filter.fit_transform(X_sample)
+
+# Get column names that remained after variance thresholding
+columns_after_var = X_sample.columns[constant_filter.get_support()]
+
+# Apply SelectKBest
 selector = SelectKBest(score_func=f_classif, k=10)
-X_new = selector.fit_transform(X_sample, Y_sample)
+X_new = selector.fit_transform(X_sample_var, Y_sample)
 
-#get the names of the selected features
-selected_features = X_sample.columns[selector.get_support()]
+# Get final selected feature names
+final_selected_features = columns_after_var[selector.get_support()]
+print("Selected features:", final_selected_features)
 
-print("Selected features:", selected_features)
-
-#create a dataframe using only the selected features
-adults_fs = pd.DataFrame()
-
-for i in X_sample.columns[selector.get_support()]:
-    adults_fs[i] = adults_encoded[i]
+# Now build the reduced DataFrame using these features
+adults_fs = adults_encoded[final_selected_features]
 
 #create a new decision tree for the selected features
 dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42, class_weight='balanced')
 
 #split the attributes again
-X_fs = X_sample
-Y_fs = Y_sample
+X_fs_full = adults_fs
+
+X_fs_sample, _, Y_fs_sample, _ = train_test_split(X_fs_full, 
+                                                  Y_full, 
+                                                  train_size=10000, 
+                                                  stratify=Y_full, 
+                                                  random_state=42)
+
+#create a new decision tree for the selected features
+dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42, class_weight='balanced')
 
 #split the data into test and train sets
 X_train_fs, X_test_fs, Y_train_fs, Y_test_fs = train_test_split(
-    X_fs, Y_fs,
+    X_fs_sample, Y_fs_sample,
     test_size = 0.4,
     stratify = Y_fs,
     random_state = 42
