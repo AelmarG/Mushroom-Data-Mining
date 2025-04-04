@@ -9,7 +9,6 @@ from sklearn.utils.class_weight import compute_class_weight
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import VarianceThreshold
 from sklearn.feature_selection import f_classif, mutual_info_classif, chi2
 from imblearn.over_sampling import SMOTE
 from sklearn.naive_bayes import GaussianNB
@@ -51,7 +50,7 @@ print(adults_encoded.head())
 X_full = adults_encoded.drop(['annual-income'], axis=1)
 Y_full = adults_encoded['annual-income']
 
-# Here we use train_test_split with train_size=10000 to obtain a representative sample.
+#use train_test_split with train_size=10000 to obtain a representative sample.
 X_sample, _, Y_sample, _ = train_test_split(X_full, Y_full,
                                             train_size=10000,
                                             stratify=Y_full,
@@ -60,7 +59,7 @@ X_sample, _, Y_sample, _ = train_test_split(X_full, Y_full,
 #split X and Y into testing and training sets
 X_train_norm, X_test_norm, Y_train_norm, Y_test_norm = train_test_split(
     X_sample, Y_sample, 
-    test_size=0.4,        #testing is 40% of the data
+    test_size=0.30,        #testing is 30% of the data
     stratify=Y_sample,           #preserve class distribution
     random_state=42       #ensures same split every run
 )
@@ -98,42 +97,33 @@ plt.show()
 
 ###CLASSIFICATION METHOD 1.5: DECISION TREES WITH FEATURE SELECTION
 
-# Remove features with no variance
-constant_filter = VarianceThreshold()
-X_sample_var = constant_filter.fit_transform(X_sample)
-
-# Get column names that remained after variance thresholding
-columns_after_var = X_sample.columns[constant_filter.get_support()]
-
-# Apply SelectKBest
+#fit SelectKBest to the original features
 selector = SelectKBest(score_func=f_classif, k=10)
-X_new = selector.fit_transform(X_sample_var, Y_sample)
+X_new = selector.fit_transform(X_sample, Y_sample)
 
-# Get final selected feature names
-final_selected_features = columns_after_var[selector.get_support()]
-print("Selected features:", final_selected_features)
+#get the names of the selected features
+selected_features = X_sample.columns[selector.get_support()]
 
-# Now build the reduced DataFrame using these features
-adults_fs = adults_encoded[final_selected_features]
+print("Selected features:", selected_features)
+
+#create a dataframe using only the selected features
+adults_fs = pd.DataFrame()
+
+for i in X_sample.columns[selector.get_support()]:
+    adults_fs[i] = adults_encoded[i]
 
 #create a new decision tree for the selected features
 dec_tree_fs = tree.DecisionTreeClassifier(max_depth=4, random_state=42, class_weight='balanced')
 
 #split the attributes again
-X_fs_full = adults_fs
-
-X_fs_sample, _, Y_fs_sample, _ = train_test_split(X_fs_full, 
-                                                  Y_full, 
-                                                  train_size=10000, 
-                                                  stratify=Y_full, 
-                                                  random_state=42)
-
+X_fs = X_sample
+Y_fs = Y_sample
 
 #split the data into test and train sets
 X_train_fs, X_test_fs, Y_train_fs, Y_test_fs = train_test_split(
-    X_fs_sample, Y_fs_sample,
+    X_fs, Y_fs,
     test_size = 0.4,
-    stratify = Y_fs_sample,
+    stratify = Y_fs,
     random_state = 42
 )
 X_train_fs_sm, Y_train_fs_sm = smote.fit_resample(X_train_fs, Y_train_fs)
